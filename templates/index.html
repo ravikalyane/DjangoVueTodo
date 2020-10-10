@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vuetify/2.3.10/vuetify.min.js"></script>
+    <script>
+        axios.defaults.xsrfCookieName = "csrftoken";
+        axios.defaults.xsrfHeaderName = "X-CSRFTOKEN";
+    </script>
+
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet" />
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui" />
+
+    <title>Todo App</title>
+</head>
+
+<body>
+    <div id="app">
+        <v-app>
+            <v-main>
+                <v-container class="mb-14">
+                    <v-text-field v-model="task.title" label="Add a task" prepend-inner-icon="mdi-content-paste"
+                        @keydown.enter="addTask()"></v-text-field>
+                    <v-card shaped v-if="allTasks.length > 0">
+                        <v-card-title>
+                            <span>Todo List</span>
+                        </v-card-title>
+                        <v-card-subtitle class="pl-3">
+                            <v-row class="my-1" align-center v-if="allTasks.length > 0">
+                                <span class="mx-4 font-weight-regular info--text text--darken-2">
+                                    Remaining: [[ remainingTasks ]]
+                                </span>
+                                <v-divider vertical></v-divider>
+                                <span class="mx-4 font-weight-regular success--text text--darken-2">
+                                    Completed: [[ completedTasks ]]
+                                </span>
+                                <v-progress-circular size="24" width="2" :value="progress" color="success">
+                                </v-progress-circular>
+                            </v-row>
+                        </v-card-subtitle>
+                        <v-card-text>
+                            <v-row v-for="item in allTasks" :key="item.id">
+                                <v-col cols="1">
+                                    <v-icon @click="checkTask(item)" v-if="item.completed">
+                                        mdi-checkbox-marked-outline
+                                    </v-icon>
+                                    <v-icon @click="checkTask(item)" v-else>
+                                        mdi-checkbox-blank-outline
+                                    </v-icon>
+                                </v-col>
+                                <v-col cols="9">
+                                    <span class="text-decoration-line-through font-weight-regular font-italic"
+                                        v-if="item.completed">[[ item.title ]]</span>
+                                    <span class="font-weight-medium" v-else>[[ item.title ]]</span>
+                                </v-col>
+                                <v-col cols="1" class="ml-n1">
+                                    <v-icon class="mr-2" @click="editTask(item)">
+                                        mdi-pencil
+                                    </v-icon>
+                                </v-col>
+                                <v-col cols="1" class="mr-1">
+                                    <v-icon @click="deleteTask(item)">
+                                        mdi-delete
+                                    </v-icon>
+                                </v-col>
+                            </v-row>
+                        </v-card-text>
+                    </v-card>
+                    <v-card class="d-flex justify-center align-center text--secondary" v-if="allTasks.length == 0">
+                        <v-card-title>
+                            You don't have any task.
+                        </v-card-title>
+                    </v-card>
+                </v-container>
+
+                <v-footer absolute>
+                    <span class="text-body-2">
+                        Todo App using Django-Vue - by Ravi Kalyane
+                    </span>
+                    <v-spacer></v-spacer>
+                    <div>&copy; [[ new Date().getFullYear() ]]</div>
+                </v-footer>
+
+            </v-main>
+        </v-app>
+    </div>
+    <script>
+        new Vue({
+            el: "#app",
+            delimiters: ["[[", "]]"],
+            vuetify: new Vuetify(),
+            data: {
+                task: {
+                    id: "",
+                    title: "",
+                    completed: "false",
+                },
+                blankTask: { id: "", title: "", completed: "false" },
+                name: "Ravi Kalyane",
+                url: "https://djangovuetodo.herokuapp.com/api/TodoApi/",
+                allTasks: [""],
+                dialog: false,
+
+            },
+            created() {
+                axios.get(this.url).then((response) => {
+                    this.allTasks = response.data;
+                });
+            },
+            methods: {
+                updateTask() {
+                    this.task.id = ""
+                    this.task.title = ""
+                    this.task.completed = "false"
+                    axios.get(this.url).then((response) => {
+                        this.allTasks = response.data;
+
+                    });
+                },
+                // addTask() {
+                //     axios.post(this.url, this.task).then((response) => this.updateTask());
+                //     this.completedTasks = this.allTasks.length;
+                //     this.task.title = "";
+                // },
+
+
+                addTask() {
+                    if (this.task.id == "") {
+                        this.task.title == ""
+                            ? alert("Please Enter a Task!")
+                            : axios
+                                .post(this.url, this.task)
+                                .then((response) => this.updateTask())
+
+                    } else {
+                        this.task.title == ""
+                            ?
+                            this.alertUser()
+                            : axios
+                                .put(this.url + this.task.id + "/", this.task)
+                                .then((response) => this.updateTask())
+                    }
+
+                },
+                alertUser() {
+                    alert("Task cannot be empty!")
+                    this.updateTask()
+                },
+
+                checkTask(item) {
+                    if (item.completed) {
+                        axios.put(this.url + item.id + "/", { title: item.title, completed: "false" }).then((response) => this.updateTask());
+                    } else {
+                        axios.put(this.url + item.id + "/", { title: item.title, completed: "true" }).then((response) => this.updateTask());
+                    }
+                },
+                deleteTask(item) {
+                    axios.delete(this.url + item.id + "/").then((response) => this.updateTask());
+                },
+                editTask(item) {
+                    this.task = item
+                },
+            },
+            computed: {
+                remainingTasks() {
+                    return this.allTasks.filter((task) => !task.completed).length;
+                },
+                completedTasks() {
+                    return this.allTasks.filter((task) => task.completed).length;
+                },
+                progress() {
+                    return (this.allTasks.filter((task) => task.completed).length / this.allTasks.length) * 100;
+                },
+            },
+        });
+    </script>
+</body>
+
+</html>
